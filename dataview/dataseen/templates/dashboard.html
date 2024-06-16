@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block body %}
+
+    <title>Sales Dashboard</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'dashboard.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1 class="dashboard-title">Sales Dashboard</h1>
+
+        <div class="row">
+            <div class="column">
+                <div class="chart-section">
+                    <h2>Sales per Branch</h2>
+                    <canvas id="salesBranchChart" class="chart-container"></canvas>
+                </div>
+            </div>
+            <div class="column">
+                <div class="chart-section">
+                    <h2>Sales per City</h2>
+                    <canvas id="salesCityChart" class="chart-container"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="column">
+                <div class="chart-section">
+                    <h2>Sales per Product Line</h2>
+                    <canvas id="salesProductLineChart" class="chart-container"></canvas>
+                </div>
+            </div>
+            <div class="column">
+                <div class="chart-section">
+                    <h2>Sales by Customer Type</h2>
+                    <canvas id="salesCustomerTypeChart" class="chart-container"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="column">
+                <div class="chart-section">
+                    <h2>Sales by Gender</h2>
+                    <canvas id="salesGenderChart" class="chart-container"></canvas>
+                </div>
+            </div>
+            <div class="column">
+                <div class="chart-section">
+                    <h2>Sales by Payment Method</h2>
+                    <canvas id="salesPaymentMethodChart" class="chart-container"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="column">
+                <div class="chart-section">
+                    <h2>Average Rating per Product Line</h2>
+                    <canvas id="avgRatingProductLineChart" class="chart-container"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        fetch("{% url 'get_data' %}")
+            .then(response => response.json())
+            .then(data => {
+                const processAggregatedData = (key, valueKey = 'Total') => {
+                    const aggregatedData = {};
+                    data.forEach(item => {
+                        if (!aggregatedData[item[key]]) {
+                            aggregatedData[item[key]] = 0;
+                        }
+                        aggregatedData[item[key]] += parseFloat(item[valueKey]);
+                    });
+                    return aggregatedData;
+                };
+
+                // Function to create a bar chart
+                const createBarChart = (ctx, labels, data, label, legendLabels) => {
+                    const backgroundColors = [
+                        'rgba(255, 99, 132, 0.5)',
+                        'rgba(54, 162, 235, 0.5)',
+                        'rgba(255, 205, 86, 0.5)',
+                        'rgba(75, 192, 192, 0.5)',
+                        'rgba(153, 102, 255, 0.5)',
+                        'rgba(255, 159, 64, 0.5)'
+                    ];
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: label,
+                                data: data,
+                                backgroundColor: backgroundColors,
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Sales Amount'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: `Sales by ${label}`,
+                                    font: {
+                                        size: 16
+                                    }
+                                },
+                                legend: {
+                                    display: true,
+                                    position: 'bottom',
+                                    labels: {
+                                        boxWidth: 10,
+                                        usePointStyle: true,
+                                        generateLabels: (chart) => {
+                                            return legendLabels.map((label, index) => {
+                                                return {
+                                                    text: label,
+                                                    fillStyle: backgroundColors[index % backgroundColors.length]
+                                                };
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                };
+
+                // Function to create a pie chart
+                const createPieChart = (ctx, labels, data, label, legendLabels) => {
+                    const backgroundColors = [
+                        'rgba(255, 99, 132, 0.5)',
+                        'rgba(54, 162, 235, 0.5)',
+                        'rgba(255, 205, 86, 0.5)',
+                        'rgba(75, 192, 192, 0.5)',
+                        'rgba(153, 102, 255, 0.5)',
+                        'rgba(255, 159, 64, 0.5)'
+                    ];
+                    new Chart(ctx, {
+                        type: 'pie',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: label,
+                                data: data,
+                                backgroundColor: backgroundColors,
+                                borderColor: backgroundColors,
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: `Sales by ${label}`,
+                                    font: {
+                                        size: 16
+                                    }
+                                },
+                                legend: {
+                                    display: true,
+                                    position: 'bottom',
+                                    labels: {
+                                        boxWidth: 10,
+                                        usePointStyle: true,
+                                        generateLabels: (chart) => {
+                                            return legendLabels.map((label, index) => {
+                                                return {
+                                                    text: label,
+                                                    fillStyle: backgroundColors[index % backgroundColors.length]
+                                                };
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                };
+
+                // Sales by Branch
+                const branchData = processAggregatedData('Branch');
+                const branchLabels = Object.keys(branchData);
+                const branchSales = Object.values(branchData);
+                createBarChart(document.getElementById('salesBranchChart').getContext('2d'), branchLabels, branchSales, 'Branch', branchLabels);
+
+                // Sales by City
+                const cityData = processAggregatedData('City');
+                const cityLabels = Object.keys(cityData);
+                const citySales = Object.values(cityData);
+                createBarChart(document.getElementById('salesCityChart').getContext('2d'), cityLabels, citySales, 'City', cityLabels);
+
+                // Sales by Product Line
+                const productLineData = processAggregatedData('Product line');
+                const productLineLabels = Object.keys(productLineData);
+                const productLineSales = Object.values(productLineData);
+                createBarChart(document.getElementById('salesProductLineChart').getContext('2d'), productLineLabels, productLineSales, 'Product Line', productLineLabels);
+
+                // Sales by Customer Type
+                const customerTypeData = processAggregatedData('Customer type');
+                const customerTypeLabels = Object.keys(customerTypeData);
+                const customerTypeSales = Object.values(customerTypeData);
+                createPieChart(document.getElementById('salesCustomerTypeChart').getContext('2d'), customerTypeLabels, customerTypeSales, 'Customer Type', customerTypeLabels);
+
+                // Sales by Gender
+                const genderData = processAggregatedData('Gender');
+                const genderLabels = Object.keys(genderData);
+                const genderSales = Object.values(genderData);
+                createPieChart(document.getElementById('salesGenderChart').getContext('2d'), genderLabels, genderSales, 'Gender', genderLabels);
+
+                // Sales by Payment Method
+                const paymentMethodData = processAggregatedData('Payment');
+                const paymentMethodLabels = Object.keys(paymentMethodData);
+                const paymentMethodSales = Object.values(paymentMethodData);
+                createPieChart(document.getElementById('salesPaymentMethodChart').getContext('2d'), paymentMethodLabels, paymentMethodSales, 'Payment Method', paymentMethodLabels);
+
+                // Average Rating per Product Line
+                const ratingData = {};
+                const ratingCount = {};
+                data.forEach(item => {
+                    if (!ratingData[item['Product line']]) {
+                        ratingData[item['Product line']] = 0;
+                        ratingCount[item['Product line']] = 0;
+                    }
+                    ratingData[item['Product line']] += parseFloat(item.Rating);
+                    ratingCount[item['Product line']] += 1;
+                });
+                const avgRatingData = {};
+                Object.keys(ratingData).forEach(key => {
+                    avgRatingData[key] = ratingData[key] / ratingCount[key];
+                });
+                const ratingLabels = Object.keys(avgRatingData);
+                const avgRatings = Object.values(avgRatingData);
+                createBarChart(document.getElementById('avgRatingProductLineChart').getContext('2d'), ratingLabels, avgRatings, 'Product Line', ratingLabels);
+            });
+    </script>
+
+       {% endblock body %}

@@ -1,0 +1,17 @@
+.navbar {
+    justify-content: center;
+  }
+  
+  .navbar-nav {
+    flex-direction: row;
+  }
+  
+  .nav-item {
+    margin: 0 10px;
+  }
+  
+  .btn {
+    font-size: 1.5rem;
+    padding: 10px 20px;
+  }
+  
